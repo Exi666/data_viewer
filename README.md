@@ -1,2 +1,3 @@
 # data_viewer
-tool to view timeseries data
+bokeh tool to view timeseries data
+
