@@ -1,0 +1,5 @@
+Stationsmessort;Stationsname;Stationsnummer;Stationshöhe;Pegelnullpunkt_[];Messpunkthöhe_[];Geländeoberkante_[];Parametername;Zeitreihenname;Pfad_der_Zeitreihe;Einheit_der_Zeitreihe;Zeitzone;Geografische_Länge;Geografische_Breite;Fehlwertkennzeichner;Filename;Parent-Folder
+Heaven;PlayStation1;08151;3035.0;;;;HS;;;cm;+01:00;46.785;10.765;nan;HS08151.nc;HS-nc
+Hell;PlayStation2;08152;1032.0;;;;HS;;;cm;+01:00;47.139;10.929;nan;HS08152.nc;HS-nc
+Heaven;PlayStation1;08151;3035.0;;;;LT;;;°C;+01:00;46.785;10.765;nan;LT08151.nc;LT-nc
+Hell;PlayStation2;08152;1032.0;;;;LT;;;°C;+01:00;47.139;10.929;nan;LT08152.nc;LT-nc
