@@ -52,3 +52,7 @@ Sample Data is just some random data with no corresponding real stations! Just f
 * configparser
 * numpy
 * pandas
+
+## Licensing
+![Creative Commons License](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)
+This code is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International](http://creativecommons.org/licenses/by-sa/4.0/) License.
