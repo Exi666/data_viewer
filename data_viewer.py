@@ -1,18 +1,21 @@
 from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource, Column, Row
+from bokeh.models import ColumnDataSource
 from bokeh.io import curdoc
 from bokeh.events import Tap
-from bokeh.models import HoverTool, TapTool, DatetimeTickFormatter
+from bokeh.models import HoverTool, TapTool, DatetimeTickFormatter, DateFormatter
 from bokeh.tile_providers import get_provider, Vendors
 from bokeh.transform import dodge
 from scipy.spatial.distance import cdist
 from bokeh.models.renderers import GlyphRenderer
+from bokeh.models.widgets import DataTable, TableColumn
+from bokeh.layouts import layout, column, row
 
 import os
 import pandas as pd
 import numpy as np
 import xarray as xr
 import configparser
+import copy
 
 
 
@@ -84,6 +87,20 @@ def callback(event):
     dfs = get_data_from_station(data_path, df_res)
     p2.line(x='index', y='LT',source=dfs, name='tmp')
     p2.add_tools(hover2)
+    data_table.source = ColumnDataSource(dfs.data)
+    
+
+def on_change_data_source(attr, old, new):
+    # old, new and source.data are the same dictionaries
+    print('-- SOURCE DATA: {}'.format(dfs.data))
+    print('>> OLD SOURCE: {}'.format(dfs.data))
+
+    # to check changes in the 'y' column:
+    #indices = list(range(len(old['y'])))
+    #changes = [(i,j,k) for i,j,k in zip(indices, old_source.data['y'], source.data['y']) if j != k]
+    #print('>> CHANGES: {}'.format(changes))
+    #old_dfs.data = copy.deepcopy(dfs.data)
+    data_table.source = ColumnDataSource(dfs.data)
     
 ### Parsing directories from config file
     
@@ -114,8 +131,8 @@ p1.circle(x="x", y="y", size=15, fill_color="blue", fill_alpha=0.4, source=df)
 
 
 #### Valueplot
+dfs = ColumnDataSource(data=dict(index=[0], LT=['NaN'])) # Initialize empty source for table and plot
 
-dfs = pd.DataFrame()
 tools_to_show_p2 = 'box_zoom,pan,save,reset,wheel_zoom'
 p2 = figure(tools=tools_to_show_p2, x_axis_type='datetime')
 p2.xaxis.formatter=DatetimeTickFormatter(
@@ -133,12 +150,23 @@ hover2 = HoverTool(
     })
 p2.add_tools(hover2)
 
+#### Datatable
+datefmt = DateFormatter(format="%m/%d/%Y %H:%M:%S")
+columns = [
+       TableColumn(field="index", title="date", formatter=datefmt),
+       TableColumn(field="LT", title="LT"),
+    ]
+
+#old_dfs = copy.deepcopy(dfs)
+data_table = DataTable(source=dfs, columns=columns, width=400, height=400, fit_columns=True, editable=True)
 
 
+#### Events
 taptool = p1.select(type=TapTool)
 
 p1.on_event(Tap, callback)
+data_table.source.on_change('data', on_change_data_source)
 
-layout=Column(p1,p2)
+doc_layout = layout(children=[p1, row(p2, data_table)], sizing_mode='fixed')
 
-curdoc().add_root(layout)
+curdoc().add_root(doc_layout)
