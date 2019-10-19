@@ -33,6 +33,8 @@ This is still a draft version, there are some further to-do's:
 * fix display in hover in upper plot
 * visual improvements like station title and correct x-axis name
 * map area dynamically (now tyrol, south-tyrol and trentino)
+* display proper DataTable
+  * make it editable and store edits
 * etc.... 
 
 Sample Data is just some random data with no corresponding real stations! Just for presentation of the data viewer!
