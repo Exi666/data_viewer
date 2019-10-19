@@ -8,7 +8,7 @@ from bokeh.transform import dodge
 from scipy.spatial.distance import cdist
 from bokeh.models.renderers import GlyphRenderer
 from bokeh.models.widgets import DataTable, TableColumn
-from bokeh.layouts import layout, column, row
+from bokeh.layouts import layout, column, row, widgetbox
 
 import os
 import pandas as pd
@@ -85,9 +85,15 @@ def callback(event):
     df_res = find_station(df, event.x, event.y)
     print(df_res['Stationsmessort'].values[0], ' / ', df_res['Stationsname'].values[0])
     dfs = get_data_from_station(data_path, df_res)
+    print('read stationdata')
+    
+    data_table.source = ColumnDataSource(dfs)
+    print(data_table.source)
+    #data_table.on_change('data', on_change_data_source)
+    print("changed dt")
     p2.line(x='index', y='LT',source=dfs, name='tmp')
     p2.add_tools(hover2)
-    data_table.source = ColumnDataSource(dfs.data)
+    print('changed p2')
     
 
 def on_change_data_source(attr, old, new):
@@ -100,7 +106,8 @@ def on_change_data_source(attr, old, new):
     #changes = [(i,j,k) for i,j,k in zip(indices, old_source.data['y'], source.data['y']) if j != k]
     #print('>> CHANGES: {}'.format(changes))
     #old_dfs.data = copy.deepcopy(dfs.data)
-    data_table.source = ColumnDataSource(dfs.data)
+    print('on_change_data_source')
+    data_table.source = ColumnDataSource(dfs)
     
 ### Parsing directories from config file
     
@@ -121,7 +128,7 @@ tile_provider = get_provider(Vendors.CARTODBPOSITRON)
 #### Mapplot
 
 tools_to_show_p1 = 'box_zoom,pan,save,hover,reset,tap,wheel_zoom'
-p1 = figure(x_range=(1043319, 1471393), y_range=(5684768, 6176606),
+p1 = figure(x_range=(1043319, 1471393), y_range=(5684768, 6176606), width=400, height=400,
            x_axis_type="mercator", y_axis_type="mercator", tools=tools_to_show_p1, sizing_mode="scale_both")
 p1.add_tile(tile_provider)
 hover1 = p1.select(dict(type=HoverTool))
@@ -129,9 +136,22 @@ hover1.tooltips = [("Stationsname", "@Stationsname"), ("Stationsmessort", "@Stat
 hover1.mode = 'mouse'
 p1.circle(x="x", y="y", size=15, fill_color="blue", fill_alpha=0.4, source=df)
 
+#### Initiate source for plots and table
+dfs = ColumnDataSource(data=dict(index=[0], LT=['NaN'])) # Initialize empty source for table and plot
+
+#### Datatable
+datefmt = DateFormatter(format="%m/%d/%Y %H:%M:%S")
+columns = [
+       TableColumn(field="index", title="date", formatter=datefmt),#, editor=DateEditor),
+       TableColumn(field="LT", title="LT"),
+    ]
+#old_dfs = copy.deepcopy(dfs)
+data_table = DataTable(source=dfs, columns=columns, width=400, height=400, fit_columns=True, editable=True)
+
+
 
 #### Valueplot
-dfs = ColumnDataSource(data=dict(index=[0], LT=['NaN'])) # Initialize empty source for table and plot
+
 
 tools_to_show_p2 = 'box_zoom,pan,save,reset,wheel_zoom'
 p2 = figure(tools=tools_to_show_p2, x_axis_type='datetime')
@@ -150,15 +170,6 @@ hover2 = HoverTool(
     })
 p2.add_tools(hover2)
 
-#### Datatable
-datefmt = DateFormatter(format="%m/%d/%Y %H:%M:%S")
-columns = [
-       TableColumn(field="index", title="date", formatter=datefmt),
-       TableColumn(field="LT", title="LT"),
-    ]
-
-#old_dfs = copy.deepcopy(dfs)
-data_table = DataTable(source=dfs, columns=columns, width=400, height=400, fit_columns=True, editable=True)
 
 
 #### Events
