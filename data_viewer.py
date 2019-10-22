@@ -87,8 +87,11 @@ def callback(event):
     dfs = get_data_from_station(data_path, df_res)
     dfs.loc[dfs['LT']==999.9] = np.nan # correction of failure values
     # change values in table
-    source = ColumnDataSource.from_df(dfs.loc[str(slider.value)])
-    data_table.source.data = source
+    try:
+        source = ColumnDataSource.from_df(dfs.loc[str(slider.value)])
+        data_table.source.data = source
+    except:
+        print('year without data')
     edit_table = True
     # add line to plot
     #p2.line(x='index', y='LT',source=source, name='tmp')
@@ -186,7 +189,7 @@ p2.add_tools(hover2)
 
 
 #### Slider for year
-slider = Slider(start=2008, end=2019, value=year, step=1, title="Year")
+slider = Slider(start=1970, end=2019, value=year, step=1, title="Year")
 
 
 
