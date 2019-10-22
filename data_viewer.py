@@ -78,6 +78,7 @@ def callback(event):
     """
     Callback function
     """
+    global dfs
     #remove_glyphs(p2, ['tmp']) # remove old lines from plot
     edit_table = False
     Coords=(event.x,event.y)
@@ -113,13 +114,14 @@ def on_change_data_source(attr, old, new):
     
 def slider_change(attr, old, new):
     # set displayed year to slider year
-    year = copy.deepcopy(new)
-    print('Year set to: ', year)
+    print('Year set to: ', new)
     print(dfs.head())
-    source = ColumnDataSource.from_df(dfs.loc[str(year)])
-    data_table.source.data = source
+    try:
+        source = ColumnDataSource.from_df(dfs.loc[str(new)])
+        data_table.source.data = source
+    except:
+        print('year without data')
     
-
  
     
 ### Parsing directories from config file
@@ -138,7 +140,7 @@ tile_provider = get_provider(Vendors.CARTODBPOSITRON)
 #### Some Parameters
 edit_table = False # set parameter to false
 year = 2012 # startyear for slider
-dfs = pd.DataFrame()
+#dfs = pd.DataFrame()
 
 ##### Plot
 
