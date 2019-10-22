@@ -78,36 +78,37 @@ def callback(event):
     """
     Callback function
     """
-    remove_glyphs(p2, ['tmp'])
+    #remove_glyphs(p2, ['tmp']) # remove old lines from plot
+    edit_table = False
     dfs = pd.DataFrame()
     Coords=(event.x,event.y)
     print(Coords)
     df_res = find_station(df, event.x, event.y)
     print(df_res['Stationsmessort'].values[0], ' / ', df_res['Stationsname'].values[0])
     dfs = get_data_from_station(data_path, df_res)
-    print('read stationdata')
+    dfs.loc[dfs['LT']==999.9] = np.nan
+    # change values in table
+    source = ColumnDataSource.from_df(dfs.loc['2012'])
+    data_table.source.data = source
+    edit_table = True
+    # add line to plot
+    #p2.line(x='index', y='LT',source=source, name='tmp')
+    #p2.add_tools(hover2)
     
-    data_table.source = ColumnDataSource(dfs)
-    print(data_table.source)
-    #data_table.on_change('data', on_change_data_source)
-    print("changed dt")
-    p2.line(x='index', y='LT',source=dfs, name='tmp')
-    p2.add_tools(hover2)
-    print('changed p2')
     
-
 def on_change_data_source(attr, old, new):
     # old, new and source.data are the same dictionaries
-    print('-- SOURCE DATA: {}'.format(dfs.data))
-    print('>> OLD SOURCE: {}'.format(dfs.data))
+    #print('-- SOURCE DATA: {}'.format(old))
+    #print('>> OLD SOURCE: {}'.format(new))
 
     # to check changes in the 'y' column:
-    #indices = list(range(len(old['y'])))
-    #changes = [(i,j,k) for i,j,k in zip(indices, old_source.data['y'], source.data['y']) if j != k]
+    #indices = list(range(len(old_dfs['LT'])))
+    #changes = [(i,j,k) for i,j,k in zip(indices, old_dfs.data['LT'], dfs.data['LT']) if j != k]
     #print('>> CHANGES: {}'.format(changes))
     #old_dfs.data = copy.deepcopy(dfs.data)
+    #data_table.height(len(data_table.source.data['LT']))
     print('on_change_data_source')
-    data_table.source = ColumnDataSource(dfs)
+    
     
 ### Parsing directories from config file
     
@@ -122,6 +123,7 @@ df = pd.read_csv(list_path, encoding='latin1', delimiter=';')
 tile_provider = get_provider(Vendors.CARTODBPOSITRON)
 [df['x'], df['y']] = merc(df['Geografische_Länge'], df['Geografische_Breite']) # interchanged because of wrong labeling in wiski
 
+edit_table = False # set parameter to false
 
 ##### Plot
 
@@ -137,7 +139,7 @@ hover1.mode = 'mouse'
 p1.circle(x="x", y="y", size=15, fill_color="blue", fill_alpha=0.4, source=df)
 
 #### Initiate source for plots and table
-dfs = ColumnDataSource(data=dict(index=[0], LT=['NaN'])) # Initialize empty source for table and plot
+source = ColumnDataSource(data=dict(index=['01/01/1970 00:00:00'], LT=['NaN'])) # Initialize empty source for table and plot
 
 #### Datatable
 datefmt = DateFormatter(format="%m/%d/%Y %H:%M:%S")
@@ -145,13 +147,11 @@ columns = [
        TableColumn(field="index", title="date", formatter=datefmt),#, editor=DateEditor),
        TableColumn(field="LT", title="LT"),
     ]
-#old_dfs = copy.deepcopy(dfs)
-data_table = DataTable(source=dfs, columns=columns, width=400, height=400, fit_columns=True, editable=True)
-
+old_dfs = copy.deepcopy(source)
+data_table = DataTable(source=source, columns=columns, width=400, height=600, fit_columns=True, editable=True)
 
 
 #### Valueplot
-
 
 tools_to_show_p2 = 'box_zoom,pan,save,reset,wheel_zoom'
 p2 = figure(tools=tools_to_show_p2, x_axis_type='datetime')
@@ -168,6 +168,7 @@ hover2 = HoverTool(
     formatters={
         'index': 'datetime',
     })
+p2.line(x='index', y='LT',source=source, name='tmp')
 p2.add_tools(hover2)
 
 
@@ -176,6 +177,8 @@ p2.add_tools(hover2)
 taptool = p1.select(type=TapTool)
 
 p1.on_event(Tap, callback)
+
+#if edit_table == True:
 data_table.source.on_change('data', on_change_data_source)
 
 doc_layout = layout(children=[p1, row(p2, data_table)], sizing_mode='fixed')
