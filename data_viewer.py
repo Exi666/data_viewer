@@ -7,7 +7,7 @@ from bokeh.tile_providers import get_provider, Vendors
 from bokeh.transform import dodge
 from scipy.spatial.distance import cdist
 from bokeh.models.renderers import GlyphRenderer
-from bokeh.models.widgets import DataTable, TableColumn, Slider
+from bokeh.models.widgets import DataTable, TableColumn, Slider, Dropdown
 from bokeh.layouts import layout, column, row, widgetbox
 
 import os
@@ -73,7 +73,8 @@ def remove_glyphs(figure, glyph_name_list):
         if r.name in glyph_name_list:
             col = r.glyph.y
             r.data_source.data[col] = [np.nan] * len(r.data_source.data[col])
-
+           
+            
 def callback(event):
     """
     Callback function
@@ -86,6 +87,7 @@ def callback(event):
     df_res = find_station(df, event.x, event.y)
     print(df_res['Stationsmessort'].values[0], ' / ', df_res['Stationsname'].values[0])
     dfs = get_data_from_station(data_path, df_res)
+    dropdown.menu = list(dfs.columns)
     dfs.loc[dfs['LT']==999.9] = np.nan # correction of failure values
     # change values in table
     try:
@@ -115,14 +117,31 @@ def on_change_data_source(attr, old, new):
 def slider_change(attr, old, new):
     # set displayed year to slider year
     print('Year set to: ', new)
-    print(dfs.head())
     try:
         source = ColumnDataSource.from_df(dfs.loc[str(new)])
         data_table.source.data = source
     except:
         print('year without data')
     
- 
+def dropdown_change(attr, old, new):
+    print('Parameter set to: ', new)
+    # change table
+    columns = [
+       TableColumn(field="index", title="date", formatter=datefmt),#, editor=DateEditor),
+       TableColumn(field=new, title=new),
+    ]
+    data_table.columns = columns
+    source = ColumnDataSource.from_df(dfs.loc[str(slider.value)])
+    data_table.source.data = source
+    # change plot
+    remove_glyphs(p2, ['tmp']) # remove old lines from plot
+    # add line to plot
+    p2.line(x='index', y=new, source=source, name='tmp')
+    hover2 = HoverTool(tooltips = [("Date", "@index{%Y-%m-%d %H:%M}"), ("Value", "@{}".format(new))],
+        formatters={'index': 'datetime'})
+    p2.add_tools(hover2)
+    
+    
     
 ### Parsing directories from config file
     
@@ -194,6 +213,9 @@ p2.add_tools(hover2)
 slider = Slider(start=1970, end=2019, value=year, step=1, title="Year")
 
 
+#### Dropdown for parameterselection
+dropdown = Dropdown(label="Parameter selection", menu=[])
+
 
 #### Events
 taptool = p1.select(type=TapTool)
@@ -201,9 +223,10 @@ taptool = p1.select(type=TapTool)
 p1.on_event(Tap, callback)
 
 slider.on_change("value", slider_change)  
+dropdown.on_change("value", dropdown_change)
 #if edit_table == True:
 #data_table.source.on_change('data', on_change_data_source)
 
-doc_layout = layout(children=[p1, slider, row(p2, data_table)], sizing_mode='fixed')
+doc_layout = layout(children=[p1, widgetbox([row(slider, dropdown)]), row(p2, data_table)], sizing_mode='fixed')
 
 curdoc().add_root(doc_layout)
