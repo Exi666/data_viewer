@@ -117,11 +117,12 @@ def dropdown_change(attr, old, new):
        TableColumn(field=new, title=new),
     ]
     data_table.columns = columns
-    global source
     source = ColumnDataSource.from_df(dfs.loc[str(slider.value)])
     data_table.source.data = source
     # change plot
     p2.renderers[0].glyph.y = new
+    tooltips = [("Date", "@index{%Y-%m-%d %H:%M}"), ("Value", "@{}".format(new))]
+    p2.tools[5].tooltips = tooltips
     
 ### Parsing directories from config file
     
@@ -139,7 +140,7 @@ tile_provider = get_provider(Vendors.CARTODBPOSITRON)
 #### Some Parameters
 edit_table = False # set parameter to false
 year = 2012 # startyear for slider
-#dfs = pd.DataFrame()
+initial_parameter = 'LT'
 
 ##### Plot
 
@@ -161,7 +162,7 @@ source = ColumnDataSource(data=dict(index=['1970-01-01 00:00'], LT=['NaN'])) # I
 datefmt = DateFormatter(format="%Y-%m-%d %H:%M")
 columns = [
        TableColumn(field="index", title="date", formatter=datefmt),#, editor=DateEditor),
-       TableColumn(field="LT", title="LT"),
+       TableColumn(field=initial_parameter, title=initial_parameter),
     ]
 old_source = copy.deepcopy(source)
 data_table = DataTable(source=source, columns=columns, width=400, height=600, fit_columns=True, editable=True)
@@ -176,15 +177,13 @@ p2.xaxis.formatter=DatetimeTickFormatter(
         days=["%d %B %Y"],
         months=["%d %B %Y"],
         years=["%d %B %Y"])
+tooltips = [("Date", "@index{%Y-%m-%d %H:%M}"), ("Value", "@{}".format(initial_parameter))]
 hover2 = HoverTool(
-    tooltips = [
-        ("Date", "@index{%Y-%m-%d %H:%M}"),
-        ("Value", "@LT"),
-    ],
+    tooltips = tooltips,
     formatters={
         'index': 'datetime',
     })
-p2.line(x='index', y='LT',source=source, name='tmp')
+p2.line(x='index', y=initial_parameter, source=source, name='tmp')
 p2.add_tools(hover2)
 
 
