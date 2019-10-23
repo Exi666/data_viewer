@@ -40,6 +40,7 @@ This is still a draft version, there are some further to-do's:
 Sample Data is just some random data with no corresponding real stations! Just for presentation of the data viewer!
 
 ## How does it look like?
+An running example can be accessed [here](https://www.exi.rocks/display/EX/Data+Viewer+Application)
 ![image](https://github.com/Exi666/data_viewer/blob/master/image.png)
 
 
