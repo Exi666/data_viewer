@@ -63,24 +63,12 @@ def get_data_from_station(data_path, df_res):
     dfs = dfs.set_index('index')
     return dfs
 
-
-def remove_glyphs(figure, glyph_name_list):
-    """
-    remove lines from plot
-    """
-    renderers = figure.select(dict(type=GlyphRenderer))
-    for r in renderers:
-        if r.name in glyph_name_list:
-            col = r.glyph.y
-            r.data_source.data[col] = [np.nan] * len(r.data_source.data[col])
-           
             
 def callback(event):
     """
     Callback function
     """
     global dfs
-    #remove_glyphs(p2, ['tmp']) # remove old lines from plot
     edit_table = False
     Coords=(event.x,event.y)
     print(Coords)
@@ -96,9 +84,7 @@ def callback(event):
     except:
         print('year without data')
     edit_table = True
-    # add line to plot
-    #p2.line(x='index', y='LT',source=source, name='tmp')
-    #p2.add_tools(hover2)
+
     
     
 def on_change_data_source(attr, old, new):
@@ -131,17 +117,11 @@ def dropdown_change(attr, old, new):
        TableColumn(field=new, title=new),
     ]
     data_table.columns = columns
+    global source
     source = ColumnDataSource.from_df(dfs.loc[str(slider.value)])
     data_table.source.data = source
     # change plot
-    remove_glyphs(p2, ['tmp']) # remove old lines from plot
-    # add line to plot
-    p2.line(x='index', y=new, source=source, name='tmp')
-    hover2 = HoverTool(tooltips = [("Date", "@index{%Y-%m-%d %H:%M}"), ("Value", "@{}".format(new))],
-        formatters={'index': 'datetime'})
-    p2.add_tools(hover2)
-    
-    
+    p2.renderers[0].glyph.y = new
     
 ### Parsing directories from config file
     
@@ -175,10 +155,10 @@ hover1.mode = 'mouse'
 p1.circle(x="x", y="y", size=15, fill_color="blue", fill_alpha=0.4, source=df)
 
 #### Initiate source for plots and table
-source = ColumnDataSource(data=dict(index=['01/01/1970 00:00:00'], LT=['NaN'])) # Initialize empty source for table and plot
+source = ColumnDataSource(data=dict(index=['1970-01-01 00:00'], LT=['NaN'])) # Initialize empty source for table and plot
 
 #### Datatable
-datefmt = DateFormatter(format="%m/%d/%Y %H:%M:%S")
+datefmt = DateFormatter(format="%Y-%m-%d %H:%M")
 columns = [
        TableColumn(field="index", title="date", formatter=datefmt),#, editor=DateEditor),
        TableColumn(field="LT", title="LT"),

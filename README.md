@@ -28,19 +28,19 @@ data_path = (path to the parent data directory)
 ##Attention
 This is still a draft version, there are some further to-do's:
 
-* parameter selection dynamically (now just LT)
-* fix bokeh tools like hover in lower pltot
-* fix display in hover in upper plot
+* fix display in hover in map plot
 * visual improvements like station title and correct x-axis name
 * map area dynamically (now tyrol, south-tyrol and trentino)
-* display proper DataTable
-  * make it editable and store edits
+* make DataTable editable and store edits
+* make it modular (IO-Functions for xarray, csv,...)
+* improve time selection
+* add automated tests 
 * etc.... 
 
 Sample Data is just some random data with no corresponding real stations! Just for presentation of the data viewer!
 
 ## How does it look like?
-![image](https://i.imgur.com/2Q4Aduo.png)
+![image](https://github.com/Exi666/data_viewer/blob/master/image.png)
 
 
 
