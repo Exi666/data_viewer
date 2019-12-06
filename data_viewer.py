@@ -7,7 +7,7 @@ from bokeh.tile_providers import get_provider, Vendors
 from bokeh.transform import dodge
 from scipy.spatial.distance import cdist
 from bokeh.models.renderers import GlyphRenderer
-from bokeh.models.widgets import DataTable, TableColumn, Slider, Dropdown
+from bokeh.models.widgets import DataTable, TableColumn, Slider, Dropdown, Div
 from bokeh.layouts import layout, column, row, widgetbox
 
 import os
@@ -63,6 +63,14 @@ def get_data_from_station(data_path, df_res):
     dfs = dfs.set_index('index')
     return dfs
 
+def get_summary(df_res, dfs):
+    timespan = "Data from {} to {} ".format(dfs.index[0], dfs.index[-1])
+    params = df_res.drop(columns=['Pegelnullpunkt_[]', 'Messpunkthöhe_[]','Geländeoberkante_[]', 'x', 'y'])
+    station_data = params.to_html()
+    stats = dfs.describe(include='all').to_html()
+    summary = timespan + station_data + stats
+    return summary
+
             
 def callback(event):
     """
@@ -75,6 +83,7 @@ def callback(event):
     df_res = find_station(df, event.x, event.y)
     print(df_res['Stationsmessort'].values[0], ' / ', df_res['Stationsname'].values[0])
     dfs = get_data_from_station(data_path, df_res)
+    summary.text = get_summary(df_res, dfs)
     dropdown.menu = list(dfs.columns)
     dfs.loc[dfs['LT']==999.9] = np.nan # correction of failure values
     # change values in table
@@ -191,6 +200,8 @@ p2.add_tools(hover2)
 #### Slider for year
 slider = Slider(start=1970, end=2019, value=year, step=1, title="Year")
 
+### Summary 
+summary = Div(text="")
 
 #### Dropdown for parameterselection
 dropdown = Dropdown(label="Parameter selection", menu=[])
@@ -206,6 +217,6 @@ dropdown.on_change("value", dropdown_change)
 #if edit_table == True:
 #data_table.source.on_change('data', on_change_data_source)
 
-doc_layout = layout(children=[p1, widgetbox([row(slider, dropdown)]), row(p2, data_table)], sizing_mode='fixed')
+doc_layout = layout(children=[p1, summary, widgetbox([row(slider, dropdown)]), row(p2, data_table)], sizing_mode='fixed')
 
 curdoc().add_root(doc_layout)
