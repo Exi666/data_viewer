@@ -65,8 +65,11 @@ def get_data_from_station(data_path, df_res):
 
 def get_summary(df_res, dfs):
     timespan = "Data from {} to {} ".format(dfs.index[0], dfs.index[-1])
-    params = df_res.drop(columns=['Pegelnullpunkt_[]', 'Messpunkthöhe_[]','Geländeoberkante_[]', 'x', 'y'])
-    station_data = params.to_html()
+    try:
+        params = df_res.drop(columns=['Pegelnullpunkt_[]', 'Messpunkthöhe_[]','Geländeoberkante_[]', 'x', 'y'])
+        station_data = params.to_html()
+    except:
+        station_data = df_res.to_html()
     stats = dfs.describe(include='all').to_html()
     summary = timespan + station_data + stats
     return summary
