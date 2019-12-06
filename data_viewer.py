@@ -87,14 +87,12 @@ def callback(event):
     print(df_res['Stationsmessort'].values[0], ' / ', df_res['Stationsname'].values[0])
     dfs = get_data_from_station(data_path, df_res)
     summary.text = get_summary(df_res, dfs)
-    dropdown.menu = list(dfs.columns)
+    par_dropdown.menu = list(dfs.columns)
+    year_dropdown.menu = np.unique(dfs.index.strftime('%Y')).tolist()
     dfs.loc[dfs['LT']==999.9] = np.nan # correction of failure values
     # change values in table
-    try:
-        source = ColumnDataSource.from_df(dfs.loc[str(slider.value)])
-        data_table.source.data = source
-    except:
-        print('year without data')
+    source = ColumnDataSource.from_df(dfs.loc[str(year_dropdown.value)])
+    data_table.source.data = source
     edit_table = True
 
     
@@ -112,8 +110,8 @@ def on_change_data_source(attr, old, new):
     print('on_change_data_source')
 
     
-def slider_change(attr, old, new):
-    # set displayed year to slider year
+def year_dropdown_change(attr, old, new):
+    # set displayed year to dropdown year
     print('Year set to: ', new)
     try:
         source = ColumnDataSource.from_df(dfs.loc[str(new)])
@@ -121,7 +119,7 @@ def slider_change(attr, old, new):
     except:
         print('year without data')
     
-def dropdown_change(attr, old, new):
+def par_dropdown_change(attr, old, new):
     print('Parameter set to: ', new)
     # change table
     columns = [
@@ -129,7 +127,7 @@ def dropdown_change(attr, old, new):
        TableColumn(field=new, title=new),
     ]
     data_table.columns = columns
-    source = ColumnDataSource.from_df(dfs.loc[str(slider.value)])
+    source = ColumnDataSource.from_df(dfs.loc[str(year_dropdown.value)])
     data_table.source.data = source
     # change plot
     p2.renderers[0].glyph.y = new
@@ -151,7 +149,7 @@ tile_provider = get_provider(Vendors.CARTODBPOSITRON)
 
 #### Some Parameters
 edit_table = False # set parameter to false
-year = 2012 # startyear for slider
+year = 2012 # startyear for dropdown
 initial_parameter = 'LT'
 
 ##### Plot
@@ -200,14 +198,14 @@ p2.add_tools(hover2)
 
 
 
-#### Slider for year
-slider = Slider(start=1970, end=2019, value=year, step=1, title="Year")
+#### Dropdown for year
+year_dropdown = Dropdown(label="Year selection", menu=[])
 
 ### Summary 
 summary = Div(text="")
 
 #### Dropdown for parameterselection
-dropdown = Dropdown(label="Parameter selection", menu=[])
+par_dropdown = Dropdown(label="Parameter selection", menu=[])
 
 
 #### Events
@@ -215,11 +213,11 @@ taptool = p1.select(type=TapTool)
 
 p1.on_event(Tap, callback)
 
-slider.on_change("value", slider_change)  
-dropdown.on_change("value", dropdown_change)
+year_dropdown.on_change("value", year_dropdown_change)  
+par_dropdown.on_change("value", par_dropdown_change)
 #if edit_table == True:
 #data_table.source.on_change('data', on_change_data_source)
 
-doc_layout = layout(children=[p1, summary, widgetbox([row(slider, dropdown)]), row(p2, data_table)], sizing_mode='fixed')
+doc_layout = layout(children=[p1, summary, widgetbox([row(year_dropdown, par_dropdown)]), row(p2, data_table)], sizing_mode='fixed')
 
 curdoc().add_root(doc_layout)
