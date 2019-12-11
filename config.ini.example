@@ -1,3 +1,8 @@
 [dir]
 list_path = xxxxxx\data_viewer\sample-data\station_overview.csv
 data_path = xxxxxx\data_viewer\sample-data
+
+[settings]
+# "armed" means, that current files are overwritten with edits in DataTable
+# if set to False, the changes are stored in a new file with prefix _new_
+armed = False

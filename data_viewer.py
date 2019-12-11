@@ -7,7 +7,7 @@ from bokeh.tile_providers import get_provider, Vendors
 from bokeh.transform import dodge
 from scipy.spatial.distance import cdist
 from bokeh.models.renderers import GlyphRenderer
-from bokeh.models.widgets import DataTable, TableColumn, Slider, Dropdown, Div
+from bokeh.models.widgets import DataTable, TableColumn, Slider, Dropdown, Div, Button
 from bokeh.layouts import layout, column, row, widgetbox
 
 import os
@@ -31,7 +31,7 @@ def merc(lat, lon):
     r_major = 6378137.000
     x = r_major * np.radians(lon)
     scale = x/lon
-    y = 180.0/np.pi * np.log(np.tan(np.pi/4.0 + 
+    y = 180.0/np.pi * np.log(np.tan(np.pi/4.0 +
         lat * (np.pi/180.0)/2.0)) * scale
     return (x, y)
 
@@ -47,15 +47,17 @@ def find_station(df, x, y):
     df_res = df.loc[df['Stationsnummer']==df_tmp['Stationsnummer']]
     return df_res
 
+
 def get_data_from_station(data_path, df_res):
     """
     Read data from corresponding netcdf file
     """
+    global data
     file_path = []
     for filename in df_res['Filename']:
         parent_folder = df_res.loc[df_res['Filename']==filename, ['Parent-Folder']]
         file_path.append(os.path.join(data_path, parent_folder['Parent-Folder'].values[0], filename))
-    data = xr.open_mfdataset(file_path,decode_times=True, combine='by_coords')
+    data = xr.open_mfdataset(file_path, decode_times=True, combine='by_coords').load()
     dfs = data.to_dataframe()
     data.close()
     dfs = dfs.reset_index()
@@ -74,42 +76,40 @@ def get_summary(df_res, dfs):
     summary = timespan + station_data + stats
     return summary
 
-            
+
+def get_outfile(df_res, parameter):
+    df_out =  df_res.loc[df['Parametername'] == parameter]
+    if armed:
+        path_out = os.path.join(data_path, df_out['Parent-Folder'].iloc[0], df_out['Filename'].iloc[0])
+    else:
+        outfile_name = '_new_' + df_out['Filename'].iloc[0] # TODO make "armed" version in config
+        path_out = os.path.join(data_path, df_out['Parent-Folder'].iloc[0], outfile_name)
+    return path_out
+
+
 def callback(event):
     """
     Callback function
     """
     global dfs
-    edit_table = False
+    global df_res
     Coords=(event.x,event.y)
-    print(Coords)
     df_res = find_station(df, event.x, event.y)
     print(df_res['Stationsmessort'].values[0], ' / ', df_res['Stationsname'].values[0])
+    stationsnummer = df_res['Stationsnummer'].iloc[0]
     dfs = get_data_from_station(data_path, df_res)
     summary.text = get_summary(df_res, dfs)
     par_dropdown.menu = list(dfs.columns)
     year_dropdown.menu = np.unique(dfs.index.strftime('%Y')).tolist()
-    dfs.loc[dfs['LT']==999.9] = np.nan # correction of failure values
+    #dfs.loc[dfs['LT']==999.9] = np.nan # correction of failure values
     # change values in table
-    source = ColumnDataSource.from_df(dfs.loc[str(year_dropdown.value)])
-    data_table.source.data = source
-    edit_table = True
+    try:
+        source = ColumnDataSource.from_df(dfs.loc[str(year_dropdown.value)])
+        data_table.source.data = source
+    except KeyError:
+        print('no data found, select correct year or parameter')
 
-    
-    
-def on_change_data_source(attr, old, new):
-    # old, new and source.data are the same dictionaries
-    #print('-- SOURCE DATA: {}'.format(old))
-    #print('>> OLD SOURCE: {}'.format(new))
 
-    # to check changes in the 'y' column:
-    #indices = list(range(len(old_source['LT'])))
-    #changes = [(i,j,k) for i,j,k in zip(indices, old_source.data['LT'], source.data['LT']) if j != k]
-    #print('>> CHANGES: {}'.format(changes))
-    #source.data = copy.deepcopy(source.data)
-    print('on_change_data_source')
-
-    
 def year_dropdown_change(attr, old, new):
     # set displayed year to dropdown year
     print('Year set to: ', new)
@@ -118,8 +118,10 @@ def year_dropdown_change(attr, old, new):
         data_table.source.data = source
     except:
         print('year without data')
-    
+
+
 def par_dropdown_change(attr, old, new):
+    global parameter
     print('Parameter set to: ', new)
     # change table
     columns = [
@@ -133,13 +135,34 @@ def par_dropdown_change(attr, old, new):
     p2.renderers[0].glyph.y = new
     tooltips = [("Date", "@index{%Y-%m-%d %H:%M}"), ("Value", "@{}".format(new))]
     p2.tools[5].tooltips = tooltips
-    
+    parameter = new
+
+def button_click():
+    """
+    Save changes in DataTable to file
+    """
+    if parameter != initial_parameter and year_dropdown.value != None and not df_res.empty:
+        path_out = get_outfile(df_res, parameter)
+        new_vals = pd.Series(data_table.source.data[parameter], index=dfs[year_dropdown.value].index)
+        dfs.loc[year_dropdown.value, parameter] = new_vals
+        new = dfs[parameter].values.reshape(data[parameter].values.shape)
+        data[parameter].values = new
+        data.to_netcdf(path_out)
+        print('Wrote changes to: ', path_out)
+    else:
+        print('No correct station, year & parameter selected')
+
+
 ### Parsing directories from config file
-    
-config = configparser.ConfigParser()     
-config.read('config.ini')    
+
+config = configparser.ConfigParser()
+config.read('config.ini')
 list_path = config['dir']['list_path']
 data_path = config['dir']['data_path']
+if config['settings']['armed'] == 'True':
+    armed = True
+else:
+    armed = False
 
 ### Read Data
 
@@ -150,7 +173,9 @@ tile_provider = get_provider(Vendors.CARTODBPOSITRON)
 #### Some Parameters
 edit_table = False # set parameter to false
 year = 2012 # startyear for dropdown
-initial_parameter = 'LT'
+initial_parameter = 'XX' # setting initial parameter to dummy
+parameter = initial_parameter
+df_res = pd.DataFrame() # initialize empty DataFrame
 
 ##### Plot
 
@@ -166,13 +191,13 @@ hover1.mode = 'mouse'
 p1.circle(x="x", y="y", size=15, fill_color="blue", fill_alpha=0.4, source=df)
 
 #### Initiate source for plots and table
-source = ColumnDataSource(data=dict(index=['1970-01-01 00:00'], LT=['NaN'])) # Initialize empty source for table and plot
+source = ColumnDataSource(data=dict(index=['1970-01-01 00:00'], XX=['NaN'])) # Initialize empty source for table and plot
 
 #### Datatable
 datefmt = DateFormatter(format="%Y-%m-%d %H:%M")
 columns = [
        TableColumn(field="index", title="date", formatter=datefmt),#, editor=DateEditor),
-       TableColumn(field=initial_parameter, title=initial_parameter),
+       TableColumn(field=parameter, title=parameter),
     ]
 old_source = copy.deepcopy(source)
 data_table = DataTable(source=source, columns=columns, width=400, height=600, fit_columns=True, editable=True)
@@ -187,37 +212,37 @@ p2.xaxis.formatter=DatetimeTickFormatter(
         days=["%d %B %Y"],
         months=["%d %B %Y"],
         years=["%d %B %Y"])
-tooltips = [("Date", "@index{%Y-%m-%d %H:%M}"), ("Value", "@{}".format(initial_parameter))]
+tooltips = [("Date", "@index{%Y-%m-%d %H:%M}"), ("Value", "@{}".format(parameter))]
 hover2 = HoverTool(
     tooltips = tooltips,
     formatters={
         'index': 'datetime',
     })
-p2.line(x='index', y=initial_parameter, source=source, name='tmp')
+p2.line(x='index', y=parameter, source=source, name='tmp')
 p2.add_tools(hover2)
-
 
 
 #### Dropdown for year
 year_dropdown = Dropdown(label="Year selection", menu=[])
 
-### Summary 
+### Summary
 summary = Div(text="")
 
 #### Dropdown for parameterselection
 par_dropdown = Dropdown(label="Parameter selection", menu=[])
 
+#### Button for saving CHANGES
+button = Button(label="Save edits in table", button_type="warning")
 
 #### Events
 taptool = p1.select(type=TapTool)
 
 p1.on_event(Tap, callback)
 
-year_dropdown.on_change("value", year_dropdown_change)  
+year_dropdown.on_change("value", year_dropdown_change)
 par_dropdown.on_change("value", par_dropdown_change)
-#if edit_table == True:
-#data_table.source.on_change('data', on_change_data_source)
+button.on_click(button_click)
 
-doc_layout = layout(children=[p1, summary, widgetbox([row(year_dropdown, par_dropdown)]), row(p2, data_table)], sizing_mode='fixed')
+doc_layout = layout(children=[p1, summary, widgetbox([row(year_dropdown, par_dropdown, button)]), row(p2, data_table)], sizing_mode='fixed')
 
 curdoc().add_root(doc_layout)
