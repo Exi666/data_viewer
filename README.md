@@ -1,15 +1,15 @@
 # data_viewer
-bokeh tool to view timeseries data from netcdf files
+bokeh tool to view timeseries data from netcdf files and edit single values in a DataTable
 
 ## How does it work?
-This is a tool to display spatial timeseries, which are stored in netcdf files. 
+This is a tool to display and edit spatial timeseries, which are stored in netcdf files.
 
 
 #### generate_overview_csv.py
-Reads through all attributes of the netcdf files in subfolders with ending "-nc" (e.g. LT-nc) and stores the attributes in an csv overview file. 
+Reads through all attributes of the netcdf files in subfolders with ending "-nc" (e.g. LT-nc) and stores the attributes in an csv overview file.
 
 #### data_viewer.py
-Plots an overview of the stations in a map. The hover tool shows which timeseries parameters are available. At a click on one station, the data of the corresponding station is read at runtime and is showed in the lower plot.
+Plots an overview of the stations in a map. The hover tool shows which timeseries parameters are available. At a click on one station, the data of the corresponding station is read at runtime and is showed in the lower plot. There will appear some statistics and metadata of the corresponding station. With dropdown menus year and parameter to display can be selected. The datatable is editable, so it's possible to write out the changes to a netcdf file (armed = True writes it to the same ile, armed = False creates a new file).
 
 called by:
 bokeh serve data_viewer.py --show
@@ -22,20 +22,22 @@ must look like:
 
 list_path = (path to the overview csv)
 
-data_path = (path to the parent data directory)
+data_path = (path to the parent data directory
+
+[settings]
+
+armed = False
 
 
 ##Attention
 This is still a draft version, there are some further to-do's:
 
 * fix display in hover in map plot
-* visual improvements like station title and correct x-axis name
+* visual improvements like station title and correct x-axis name in plot
 * map area dynamically (now tyrol, south-tyrol and trentino)
-* make DataTable editable and store edits
 * make it modular (IO-Functions for xarray, csv,...)
-* improve time selection
-* add automated tests 
-* etc.... 
+* add automated tests
+* etc....
 
 Sample Data is just some random data with no corresponding real stations! Just for presentation of the data viewer!
 
