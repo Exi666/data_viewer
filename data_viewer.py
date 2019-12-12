@@ -52,7 +52,6 @@ def get_data_from_station(data_path, df_res):
     """
     Read data from corresponding netcdf file
     """
-    global data
     file_path = []
     for filename in df_res['Filename']:
         parent_folder = df_res.loc[df_res['Filename']==filename, ['Parent-Folder']]
@@ -143,14 +142,22 @@ def button_click():
     """
     if parameter != initial_parameter and year_dropdown.value != None and not df_res.empty:
         path_out = get_outfile(df_res, parameter)
+        # extracting values from table and setting them to dataframe
         new_vals = pd.Series(data_table.source.data[parameter], index=dfs[year_dropdown.value].index)
         dfs.loc[year_dropdown.value, parameter] = new_vals
-        new = dfs[parameter].values.reshape(data[parameter].values.shape)
-        data[parameter].values = new
-        data.to_netcdf(path_out)
+        # open outfile
+        data_out = xr.open_mfdataset(path_out, decode_times=True, combine='by_coords')
+        data_out = data_out.drop(parameter) # drop old data
+        data_out = data_out.drop('index') # drop old index
+        # assign the new variables
+        data_out = data_out.assign_coords({'index': dfs.index.values})
+        new = dfs[parameter].values.reshape((1,1,1,dfs[parameter].values.shape[0]))
+        dims = ['height', 'lon', 'lat', 'index']
+        data_out = data_out.assign({parameter:(dims, new)})
+        data_out.to_netcdf(path_out)
         print('Wrote changes to: ', path_out)
     else:
-        print('No correct station, year & parameter selected')
+        print('No correct station, year or parameter selected')
 
 
 ### Parsing directories from config file
