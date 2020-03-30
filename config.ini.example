@@ -1,6 +1,8 @@
 [dir]
 list_path = xxxxxx\data_viewer\sample-data\station_overview.csv
 data_path = xxxxxx\data_viewer\sample-data
+# another file to mark which stations are corrected yet
+#corr_path = xxxxxx\data_viewer\sample-data\station_corrected.csv
 
 [settings]
 # "armed" means, that current files are overwritten with edits in DataTable

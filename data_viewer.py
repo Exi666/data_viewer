@@ -35,6 +35,22 @@ def merc(lat, lon):
         lat * (np.pi/180.0)/2.0)) * scale
     return (x, y)
 
+
+def read_corr_file():
+    """
+    if corrected file is defined in config, this one is used to color up
+    stations in mapplot
+    """
+    corr_path = config['dir']['corr_path']
+    df_corr = pd.read_csv(corr_path, encoding='latin1', delimiter=';')
+    # x and y coordinates
+    [df_corr['x'], df_corr['y']] = merc(df_corr['Geografische_Länge'], df_corr['Geografische_Breite']) # interchanged because of wrong labeling in wiski
+    #  set colors for points
+    colors =  {np.nan: "red", 'j': "green"}
+    df_corr["color"] = df_corr["corr"].apply(lambda c: colors[c])
+    return df_corr
+
+
 def find_station(df, x, y):
     """
     Find nearest Station for selected coordinates
@@ -88,7 +104,7 @@ def get_outfile(df_res, parameter):
 
 def callback(event):
     """
-    Callback function
+    Callback function for Mapplot
     """
     global dfs
     global df_res
@@ -115,6 +131,12 @@ def year_dropdown_change(attr, old, new):
     try:
         source = ColumnDataSource.from_df(dfs.loc[str(new)])
         data_table.source.data = source
+        #p2.renderers[0].glyph.y = initial_parameter
+        p2.x_range.start = source['index'].min()
+        p2.x_range.end = source['index'].max()
+        #p2.renderers[0].data_source.data = source
+        #print(p2.renderers)
+
     except:
         print('year without data')
 
@@ -122,6 +144,7 @@ def year_dropdown_change(attr, old, new):
 def par_dropdown_change(attr, old, new):
     global parameter
     print('Parameter set to: ', new)
+    parameter = new
     # change table
     columns = [
        TableColumn(field="index", title="date", formatter=datefmt),#, editor=DateEditor),
@@ -131,10 +154,10 @@ def par_dropdown_change(attr, old, new):
     source = ColumnDataSource.from_df(dfs.loc[str(year_dropdown.value)])
     data_table.source.data = source
     # change plot
-    p2.renderers[0].glyph.y = new
-    tooltips = [("Date", "@index{%Y-%m-%d %H:%M}"), ("Value", "@{}".format(new))]
+    p2.renderers[0].glyph.y = parameter
+    tooltips = [("Date", "@index{%Y-%m-%d %H:%M}"), ("Value", "@{}".format(parameter))]
     p2.tools[5].tooltips = tooltips
-    parameter = new
+
 
 def button_click():
     """
@@ -195,7 +218,11 @@ p1.add_tile(tile_provider)
 hover1 = p1.select(dict(type=HoverTool))
 hover1.tooltips = [("Stationsname", "@Stationsname"), ("Stationsmessort", "@Stationsmessort"), ("Parametername", "@Parametername")]
 hover1.mode = 'mouse'
-p1.circle(x="x", y="y", size=15, fill_color="blue", fill_alpha=0.4, source=df)
+if config['dir']['corr_path']:
+    df_corr = read_corr_file()
+    p1.circle(x="x", y="y", size=15, fill_color='color', fill_alpha=0.4, source=df_corr)
+else:
+    p1.circle(x="x", y="y", size=15, fill_color="blue", fill_alpha=0.4, source=df)
 
 #### Initiate source for plots and table
 source = ColumnDataSource(data=dict(index=['1970-01-01 00:00'], XX=['NaN'])) # Initialize empty source for table and plot
